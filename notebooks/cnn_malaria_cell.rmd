@@ -1,0 +1,592 @@
+---
+title: "R Notebook"
+output: html_document
+---
+
+```{r}
+library(latex2exp)
+library(imageseg)
+library(caret)
+library(tools)
+library(xfun)
+library(EBImage)
+library(stringi)
+library(ROCR)
+library(pROC)
+library(reticulate)
+library(tensorflow)
+library(keras)
+library(imager)
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(skimr)
+library(tm)
+library(RWeka)
+library(e1071)
+library(scales)
+library(cutpointr)
+library(magick)
+
+# Set the working directory
+setwd("C:/Ngoc/MastersThesis/Draft")
+
+main_folder <- "cell_images"
+class_folders <- list.dirs(main_folder, full.names = FALSE) # -> class_folders[1] is an empty string 
+class_folders <- stri_remove_empty(class_folders, na_empty = TRUE)
+```
+
+### A/ Find training and test set AUC for a built - from - scratch CNN model:
+
+#### 1. Delete folder 'cell_images/cell_images':
+
+```{r}
+############## Turn to comments from the second run onwards ###############
+# unlink('cell_images/cell_images', recursive = TRUE)
+```
+
+Unlike some preprocessing steps in tabular data (like normalization / standardization, filling in missing values, ...), format conversion and resizing do not involve calculations and transformations based on data distributions that may affect the learning process of the model. These two steps are just used to ensure consistent input format and size for the model to work properly on the dataset. Therefore, instead of:
+
+-   Checking for any inconsistencies in the format of the images based on just the training set, then based on the result, convert all images from the training, validation and test set to the same format,
+
+-   As well as finding the range of image height and width from just the training set, then based on the result, resize all images to the same size,
+
+We can:
+
+-   Check for any inconsistencies in the format of the images based on the whole dataset, then based on the result, convert all images from the training, validation and test set to the same format,
+
+-   As well as finding the range of image height and width from the whole dataset, then based on the result, resize all images to the same size.
+
+For this approach, we only need to apply resizing and format conversion steps once at the begining then save the processed images for future code runs, instead of having to re - run these steps every time we split the train - validation - test set differently. This is practical and helps simplify the coding process.
+
+#### 2. Check for any inconsistencies in the format of the images:
+
+```{r}
+# ############## Turn to comments from the second run onwards ###############
+# num_gray = 0
+# num_rgb = 0
+# num_other = 0
+# 
+# for (class_folder in class_folders){
+#   directory <- file.path(main_folder, class_folder)
+#   files <- list.files(directory, full.names = TRUE, pattern = "\\.png$")
+#   for (file in files){
+#     tryCatch(
+#       {
+#         img <- image_read(file)
+#         info <- image_info(img)
+#         if (info$colorspace == "Gray"){
+#           num_gray = num_gray + 1
+#         }
+#         else if (info$colorspace == "sRGB"){
+#             num_rgb = num_rgb + 1
+#         }
+#         else {
+#           num_other = num_other + 1
+#           cat("Image format: ", info$colorspace, "\n", file, "\n\n")
+#         }
+#       },
+#       error = function(e)
+#       {
+#       cat("An exception occurred:", e$message, "\n", file, "\n\n")
+#       })
+#   }
+# }
+# 
+# cat("Number of Grayscale images:", num_gray, "\n")
+# cat("Number of RGB images:", num_rgb, "\n")
+# cat("Number of other types of images:", num_other, "\n")
+# 
+# # -> The dataset contains ... images in RGB format
+```
+
+#### **3. Find the range of image height and width in the dataset:**
+
+```{r}
+# ############## Turn to comments from the second run onwards ###############
+# min_width <- Inf
+# max_width <- 0
+# min_height <- Inf
+# max_height <- 0
+# widths <- list()
+# heights <- list() 
+# 
+# for (class_folder in class_folders){
+#   directory <- file.path(main_folder, class_folder)
+#   files <- list.files(directory, full.names = TRUE, pattern = "\\.png$")
+#   for (file in files){
+#     tryCatch(
+#       {
+#         img <- load.image(file)
+#         width <- dim(img)[1]
+#         height <- dim(img)[2]
+#         widths <- c(widths, width)
+#         heights <- c(heights, height)
+# 
+#         if (width < min_width){
+#           min_width <- width
+#         }
+#         if (width > max_width){
+#           max_width <- width
+#         }
+#         if (height < min_height){
+#           min_height <- height
+#         }
+#         if (height > max_height){
+#           max_height <- height
+#         }
+#       },
+#       error = function(e)
+#       {
+#       cat("An exception occurred:", e$message, "\n", file, "\n\n")
+#       })
+#   }
+# }
+# 
+# cat("The range of image width:", min_width, " - ", max_width, "pixels \n")
+# cat("The range of image height:", min_height, " - ", max_height, "pixels \n")
+```
+
+```{r}
+# # Distribution of image widths and heights
+# hist(unlist(widths), main = "Distribution of Image Widths", 
+#      xlab = "Width (pixels)", ylab = "Frequency", col = "lightblue", 
+#      xlim = c(0, 400), ylim = c(0, 14000), border = "black")
+# 
+# hist(unlist(heights), main = "Distribution of Image Heights", 
+#      xlab = "Height (pixels)", ylab = "Frequency", col = "lightblue", 
+#      xlim = c(0, 400), ylim = c(0, 14000), border = "black")
+```
+
+#### 4. Resize all images into size 50 x 50 pixels:
+
+```{r}
+############## Turn to comments from the second run onwards ###############
+# resize <- function(directory)
+# {
+#   files <- list.files(directory, full.names = TRUE)
+#   for (file in files)
+#   {
+#     tryCatch(
+#       {
+#       img <- load.image(file)
+#       img_resized <- EBImage::resize(img, 50, 50, filter = "bilinear")
+#       save.image(img_resized, file)
+#       },
+#       error = function(e)
+#       {
+#       cat("An exception occurred:", e$message, "\n")
+#       })
+#   }
+# }
+# 
+# for (class_folder in class_folders) {
+#   resize(file.path(main_folder, class_folder))
+# }
+```
+
+#### 5. Get the list of images and the list of labels:
+
+```{r}
+# Get the list of image paths and the list of categorical labels 
+image_paths <- list()
+labels <- list()
+for (class_folder in class_folders) {
+  images <- list.files(file.path(main_folder, class_folder), full.names = TRUE, pattern = "\\.png$")
+  image_paths <- c(image_paths, images)
+  labels <- c(labels, rep(class_folder, length(images)))
+}
+
+# Load the images
+X <- lapply(unlist(image_paths), load.image)
+
+# Label encoding
+y <- ifelse(unlist(labels) == "Parasitized", 1, 0)
+```
+
+#### 6. Split training - test - validation sets:
+
+```{r}
+set.seed(1)
+
+# Shuffle X and labels in the same order to make sure the label values appear in a random order 
+shuffle_indices <- sample(1:length(X))
+X <- X[shuffle_indices]
+y <- y[shuffle_indices]
+
+# Split train : test : val as 70 : 20 : 10
+train_indices_temp <- createDataPartition(y, p = 0.8, list = FALSE)
+test_indices <- setdiff(seq_along(y), train_indices_temp)
+# -> seq_along(x) creates a sequence of integers with the same length as x
+
+X_train_temp <- X[train_indices_temp]
+y_train_temp <- y[train_indices_temp]
+X_test <- X[test_indices]
+y_test <- y[test_indices]
+
+val_indices <- createDataPartition(y_train_temp, p = 0.125, list = FALSE)
+train_indices <- setdiff(seq_along(y_train_temp), val_indices)
+
+X_train <- X_train_temp[train_indices]
+y_train <- y_train_temp[train_indices]
+X_val <- X_train_temp[val_indices]
+y_val <- y_train_temp[val_indices]
+# (train: 0.875 x 0.8 = 0.7 ; val: 0.125 x 0.8 = 0.1)
+
+# Examine the size of the training, validation, and test sets
+cat("Train set's size: X_train = ", length(X_train), ", y_train = ", length(y_train), "\n")
+cat("Validation set's size: X_val = ", length(X_val), ", y_val = ", length(y_val), "\n")
+cat("Test set's size: X_test = ", length(X_test), ", y_test = ", length(y_test), "\n")
+```
+
+```{r}
+# Check the pixel value range of training images
+cat("Pixel value range of training images: [", min(unlist(X_train)), ",", max(unlist(X_train)), "] \n")
+# -> All training images are already normalized
+```
+
+#### 7. Check for class distribution in training set:
+
+```{r}
+count <- as.numeric(table(y_train))
+custom_labels <- ifelse(names(table(y_train)) == "1", "Parasitized", "Uninfected") 
+bp <- barplot(table(y_train), names.arg = custom_labels, main = "Class distribution in Training Set", col = c("aquamarine3", "lightcoral"), ylim = c(0, 12000), xlab = "Cell Image Class", ylab = "Number of Samples")
+text(x = bp, y = count, label = count, cex = 0.9, pos = 3, col = "black")
+# -> There is no class imbalance 
+```
+
+#### 8. Apply other preprocessing steps and show some image samples:
+
+All training images are already normalized, so there is no need to normalize the training, validation and test set.
+
+```{r}
+# # One - hot encode the labels (not needed when using sigmoid activation function in last FC layer in binary classification)
+# y_train_ <- keras::to_categorical(y_train)
+# y_val_ <- keras::to_categorical(y_val)
+# y_test_ <- keras::to_categorical(y_test)
+
+# Reshape the images
+xtr <- do.call(rbind, X_train)
+X_train_ <- array_reshape(xtr, c(dim(xtr)[1], 50, 50, 3), order = "F")
+xv <- do.call(rbind, X_val)
+X_val_ <- array_reshape(xv, c(dim(xv)[1], 50, 50, 3), order = "F")
+xte <- do.call(rbind, X_test)
+X_test_ <- array_reshape(xte, c(dim(xte)[1], 50, 50, 3), order = "F")
+# order = "C" means elements should be read in row-major order, with the last index changing fastest; "F" means elements should be read in column-major order, with the first index changing fastest.
+
+# Show some samples in the dataset
+labels_tr <- c()
+labels_te <- c()
+labels_tr <- ifelse(y_train == 1, "Parasitized", "Uninfected")
+labels_te <- ifelse(y_test == 1, "Parasitized", "Uninfected")
+
+# Display the 1080th image from the training set
+plot(as.cimg(X_train_[1080,,,]))
+title(main = 'Sample from Training Set', sub = paste0("Class: ", labels_tr[1080]))
+
+# Display the 320th image from the test set
+plot(as.cimg(X_test_[320,,,]))
+title(main = 'Sample from Test Set', sub = paste0("Class: ", labels_te[320]))
+```
+
+#### 9. Build the CNN model:
+
+```{r}
+# Initialize the Sequential model
+my_model <- keras_model_sequential()
+
+# Block 1
+my_model %>%
+  layer_conv_2d(filters = 16, input_shape = c(50, 50, 3), kernel_size = c(3, 3), strides = c(1, 1), padding = 'same', name = 'Block_1_Conv_1') %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_conv_2d(filters = 32, kernel_size = c(3, 3), strides = c(1, 1), padding = 'same', name = 'Block_1_Conv_2') %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_max_pooling_2d(pool_size = c(2, 2), strides = c(2, 2), padding = 'same', name = 'Block_1_MaxPool') %>%
+  layer_dropout(rate = 0.2)
+
+# Block 2
+my_model %>%
+  layer_conv_2d(filters = 64, kernel_size = c(3, 3), strides = c(1, 1), padding = 'same', name = 'Block_2_Conv_1') %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_conv_2d(filters = 128, kernel_size = c(3, 3), strides = c(1, 1), padding = 'same', name = 'Block_2_Conv_2') %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_max_pooling_2d(pool_size = c(2, 2), strides = c(2, 2), padding = 'same', name = 'Block_2_MaxPool') %>%
+  layer_dropout(rate = 0.2)
+
+# Block 3
+my_model %>%
+  layer_conv_2d(filters = 256, kernel_size = c(3, 3), strides = c(1, 1), padding = 'same', name = 'Block_3_Conv_1') %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_conv_2d(filters = 512, kernel_size = c(3, 3), strides = c(1, 1), padding = 'same', name = 'Block_3_Conv_2') %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_max_pooling_2d(pool_size = c(2, 2), strides = c(2, 2), padding = 'same', name = 'Block_3_MaxPool') %>%
+  layer_dropout(rate = 0.2)
+
+# Flatten
+my_model %>%
+  layer_flatten()
+
+# Fully connected (FC) layer 1
+my_model %>%
+  layer_dense(units = 128) %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_dropout(rate = 0.4)
+
+# Fully connected (FC) layer 2
+my_model %>%
+  layer_dense(units = 100) %>%
+  layer_batch_normalization() %>%
+  layer_activation('relu') %>%
+  layer_dropout(rate = 0.4)
+
+# Fully connected (FC) layer 3
+my_model %>%
+  layer_dense(units = 1) %>%
+  layer_activation('sigmoid')
+
+# Model Summary
+summary(my_model)
+```
+
+#### 10. Compile the model:
+
+```{r}
+my_model %>%
+  compile(loss = 'binary_crossentropy', optimizer = optimizer_sgd(learning_rate = 0.007, momentum = 0.9), metrics = list('AUC'))
+```
+
+#### 11. Train the model:
+
+```{r}
+# ############## Turn to comments from the second run onwards ###############
+# # Create a callback ModelCheckpoint. This callback will save the model weights when finding one better than the current best
+# checkpoint_filepath <- "malaria_best_model_weights.h5"
+# mc <- callback_model_checkpoint(filepath = checkpoint_filepath, monitor = "val_loss", save_best_only = TRUE, save_weights_only = TRUE, save_freq = "epoch", verbose = 0)
+# 
+# # Train the model
+# history <- my_model %>%
+#   fit(X_train_, y_train, batch_size = 32, epochs = 20, verbose = 1, validation_data = list(X_val_, y_val), callbacks = list(mc))
+```
+
+#### 12. Plot training and validation AUC:
+
+```{r}
+# ############### Turn to comments from the second run onwards ###############
+# # Plot training and validation loss and AUC:
+# plot(history)
+```
+
+#### 13. Using the saved best model weights, evaluate the model's AUC on training and test set:
+
+```{r}
+# Load the saved best model weights to the model
+weights_filepath <- "malaria_best_model_weights.h5"
+my_model %>% load_model_weights_tf(weights_filepath)
+
+### Evaluate the model on training set:
+my_model %>% evaluate(X_train_, y_train, verbose = 0)   # Compute training loss and AUC
+
+### Evaluate the model on test set: 
+y_test_pred <- predict(my_model, X_test_, verbose = 0)  
+y_test_pred <- as.vector(y_test_pred)
+
+my_model %>% evaluate(X_test_, y_test, verbose = 0)     # Compute test loss and AUC
+```
+
+### **B/ Choosing decision threshold by ROC curve and decision curve:**
+
+#### 1. **Criterias to determine the decision threshold for the CNN model:**
+
+-   **Youden index criterion:**
+
+```{r}
+# Optimal threshold obtained by maximizing youden index
+j_threshold <- function(y_true, y_pred) {
+  roc_obj <- pROC::roc(y_true, y_pred)
+  fpr <- 1 - roc_obj$specificities
+  tpr <- roc_obj$sensitivities
+  thresholds <- roc_obj$thresholds
+  j <- tpr - fpr 
+  j <- sort(j, decreasing = TRUE, index.return = TRUE)
+  j_ordered <- data.frame(j = j[1], thresholds = thresholds[rank(j$ix)])
+  for (k in 1:nrow(j_ordered)){
+    if (is.finite(j_ordered$thresholds[k])) {
+      return(j_ordered$thresholds[k])
+      break
+      }
+  }
+}
+
+cj <- j_threshold(y_test, y_test_pred)
+cj
+```
+
+-   **Closest to (0,1) criterion:**
+
+```{r}
+# Optimal threshold obtained by maximizing sensitivity and specificity to the extent that both are closest to 100% 
+d_threshold <- function(y_true, y_pred) {
+  roc_obj <- pROC::roc(y_true, y_pred)
+  fpr <- 1 - roc_obj$specificities
+  tpr <- roc_obj$sensitivities
+  thresholds <- roc_obj$thresholds
+  d <- sapply(1:length(fpr), function(i) sqrt((1 - tpr[i])^2 + (fpr[i])^2))
+  d <- sort(d, decreasing = FALSE, index.return = TRUE)
+  d_ordered <- data.frame(d = d[1], thresholds = thresholds[rank(d$ix)])
+  for (k in 1:nrow(d_ordered)){
+    if (is.finite(d_ordered$thresholds[k])) {
+      return(d_ordered$thresholds[k])
+      break
+      }
+  }
+}
+
+cd <- d_threshold(y_test, y_test_pred)
+cd
+```
+
+-   **Symetric point criterion:**
+
+```{r}
+# Optimal threshold obtained by finding the point where sensitivity and specificity are equivalent
+s_threshold <- function(y_true, y_pred) {
+  roc_obj <- pROC::roc(y_true, y_pred)
+  fpr <- 1 - roc_obj$specificities
+  tpr <- roc_obj$sensitivities
+  thresholds <- roc_obj$thresholds
+  s <- abs(fpr + tpr - 1)
+  s <- sort(s, decreasing = FALSE, index.return = TRUE)
+  s_ordered <- data.frame(s = s[1], thresholds = thresholds[rank(s$ix)])
+  for (k in 1:nrow(s_ordered)){
+    if (is.finite(s_ordered$thresholds[k])) {
+      return(s_ordered$thresholds[k])
+      break
+      }
+  }
+}
+
+cs <- s_threshold(y_test, y_test_pred)
+cs
+```
+
+#### 2. Plot ROC curve, decision curve and optimal thresholds for the CNN model:
+
+```{r}
+# Plot ROC curve:
+roc_obj <- pROC::roc(y_test, y_test_pred)
+thresholds_cnn <- roc_obj$thresholds 
+roc_data <- data.frame(fpr = rev(1 - roc_obj$specificities), tpr = rev(roc_obj$sensitivities))
+
+
+for (i in 1:length(roc_obj$thresholds)){
+  if (roc_obj$thresholds[i] == cj){
+    specificity_j <- roc_obj$specificities[i]
+    sensitivity_j <- roc_obj$sensitivities[i]
+  }
+  if (roc_obj$thresholds[i] == cd){
+    specificity_d <- roc_obj$specificities[i]
+    sensitivity_d <- roc_obj$sensitivities[i]
+  }
+  if (roc_obj$thresholds[i] == cs){
+    specificity_s <- roc_obj$specificities[i]
+    sensitivity_s <- roc_obj$sensitivities[i]
+  }
+}
+
+diagonal_data <- data.frame(x = seq(0, 1, length.out = 100), y = 1 - seq(0, 1, length.out = 100))
+thresholds_data <- data.frame(x1 = 0, x2 = 1 - specificity_d, y1 = 1, y2 = sensitivity_d)
+sp_se_j <- data.frame(sp = specificity_j, se = sensitivity_j)
+sp_se_d <- data.frame(sp = specificity_d, se = sensitivity_d)
+sp_se_s <- data.frame(sp = specificity_s, se = sensitivity_s)
+
+ggplot(data = roc_data, aes(x = fpr, y = tpr)) +
+  geom_line(linetype = "solid", linewidth = 1, col = "blue") +
+  geom_line(data = diagonal_data, aes(x = x, y = y), linetype = "dashed", linewidth = 1, col = "orange") +
+  geom_segment(data = thresholds_data, aes(x = x1, y = y1, xend = x2, yend = y2), linetype = "dotdash", linewidth = 1, col = "pink") +
+  geom_point(data = sp_se_j, aes(x = 1 - sp, y = se, col = "c_j"), size = 4, show.legend = TRUE) +
+  geom_point(data = sp_se_d, aes(x = 1 - sp, y = se, col = "c_d"), size = 4, show.legend = TRUE) +
+  geom_point(data = sp_se_s, aes(x = 1 - sp, y = se, col = "c_s"), size = 4, show.legend = TRUE) +
+  labs(title = "ROC curve", x = "False positive rate", y = "True positive rate") + 
+  scale_color_manual(name = "Threshold", labels = unname(TeX(c("At $\\hat{c}_{J}$", "At $\\hat{c}_{D}$", "At $\\hat{c}_{S}$"))), values=c("red", "purple", "green")) +
+  theme_bw() +
+  theme(plot.title = element_text(face="bold", hjust = 0.5)) 
+```
+
+```{r}
+# Plot decision curve
+
+# Net benefit function 
+nb <- function(y_true, y_pred, c, prev){
+  roc_obj <- pROC::roc(y_true, y_pred)
+  for (i in 1:length(roc_obj$thresholds)){
+    if (roc_obj$thresholds[i] == c){
+      se_c <- roc_obj$sensitivities[i]
+      sp_c <- roc_obj$specificities[i]
+      break
+    }
+  }
+  phi_c <- se_c * prev - (1 - sp_c) * (1 - prev) * c/(1 - c) 
+  return(phi_c)
+}
+
+# Calculate disease prevalence in the population:
+p = sum(y_test)/length(y_test)
+  
+df_cnn <- data.frame(y_test_pred, y_test)
+nb_j <- data.frame(cj = cj, nbj = nb(y_test, y_test_pred, cj, p))
+nb_d <- data.frame(cd = cd, nbd = nb(y_test, y_test_pred, cd, p))
+nb_s <- data.frame(cs = cs, nbs = nb(y_test, y_test_pred, cs, p))
+
+# For the Decision curve plot, use the thresholds values from ROC curve plot to make sure that the optimal thresholds show on the decision curve correctly
+dcurves::dca(y_test ~ y_test_pred, data = df_cnn, label = list(y_test_pred = "CNN model"), thresholds = thresholds_cnn, prevalence = p) %>% 
+  plot(smooth = FALSE) + geom_line(linewidth = 1) + labs(title = "Decision curve") +
+  geom_point(data = nb_j, aes(x = cj, y = nbj, col = "c_j"), size = 4, show.legend = TRUE) +
+  geom_point(data = nb_d, aes(x = cd, y = nbd, col = "c_d"), size = 4, show.legend = TRUE) +
+  geom_point(data = nb_s, aes(x = cs, y = nbs, col = "c_s"), size = 4, show.legend = TRUE) + 
+  scale_color_manual(labels = unname(TeX(c("Treat All", "Treat None", "CNN model", "At $\\hat{c}_{J}$", "At $\\hat{c}_{D}$", "At $\\hat{c}_{S}$"))), values=c("orange", "pink", "blue", "red", "purple", "green")) +
+  guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "solid", rep("blank", 3)), shape = c(NA, NA, NA, rep(16, 3))))) + 
+  theme(plot.title = element_text(face="bold", hjust = 0.5))
+```
+
+```{r}
+# Finding the optimal threshold
+nb_j <- nb(y_test, y_test_pred, cj, p)
+nb_d <- nb(y_test, y_test_pred, cd, p)
+nb_s <- nb(y_test, y_test_pred, cs, p)
+nb_values <- c(cj = nb_j, cd = nb_d, cs = nb_s)
+
+best_threshold <- names(which.max(nb_values))   # Name of the threshold with highest net benefit
+threshold_map <- list(cj = cj, cd = cd, cs = cs)
+c_res <- threshold_map[[best_threshold]]   # Get the optimal threshold's value 
+cat("Optimal threshold:", best_threshold, "=", c_res)
+```
+
+```{r fig.width=10, fig.height=8}
+## Example: Predicting the class of a new data point with CNN model
+new_obs_ <- X_test[2:7]  # Some observations from the test set 
+new_obs <- do.call(rbind, new_obs_)
+new_obs <- array_reshape(new_obs, c(dim(new_obs)[1], 50, 50, 3), order = "F")  
+# In the procedure: You need to preprocess (Convert into the correct format, Resize, Normalize, Reshape, ... in the same method and with the same values calculated from the preprocessing step of the training set) the new data if needed 
+actual_classes <- y_test[2:7]
+class_preds <- c()
+
+y_pred <- predict(my_model, new_obs, verbose = 0)  
+y_pred = round(y_pred, digits = 7)
+class_preds <- ifelse(y_pred >= c_res, "Parasitized", "Uninfected")   
+actual_classes <- ifelse(actual_classes == 1, "Parasitized", "Uninfected")
+
+# Final result 
+par(mfrow = c(3, 2))  # Create subplots with 2 rows and 3 columns 
+
+for (i in 1:nrow(new_obs)){
+  suppressWarnings(plot(as.cimg(new_obs[i,,,])))
+  title(main = paste0("Observation ", i, "\n Predicted class: ", class_preds[i], "; Actual class: ", actual_classes[i]), sub = paste0("Predicted probability: ", y_pred[i]), cex.main = 1.4, cex.sub = 1.4)
+}
+```
