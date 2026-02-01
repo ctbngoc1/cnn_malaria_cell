@@ -10,7 +10,7 @@ This project implements a Convolutional Neural Network (CNN) to automatically de
 
 This project uses the Malaria Cell Images dataset, which contains 28,115 images of Giemsa-stained red blood cells collected from thin blood smears. The images are divided into two classes: *Parasitized* and *Uninfected*. The dataset is publicly available at: <https://www.kaggle.com/datasets/iarunava/cell-images-for-detecting-malaria>
 
-![Parasitized](images/parasitized.jpg "Parasitized"){width="151"} ![Uninfected](images/uninfected.jpg "Uninfected"){width="147"}
+![Parasitized](images/parasitized.jpg "Parasitized") ![Uninfected](images/uninfected.jpg "Uninfected")
 
 ***Figure 1:** Images of parasitized and uninfected red blood cells*
 
@@ -28,7 +28,7 @@ A CNN was built from scratch using Tensorflow to classify malaria-infected and u
 
 -   Finally, the output layer is defined as a FC layer with 1 unit and sigmoid activation, producing a probability score that indicates the likelihood that an input image belongs to the Parasitized class.
 
-![***Figure 2:** Architecture of the CNN model*](images/cnn_diagram.jpg "Architecture of the CNN model"){width="813"}
+![***Figure 2:** Architecture of the CNN model*](images/cnn_diagram.jpg "Architecture of the CNN model")
 
 The resulting model was trained using the Stochastic Gradient Descent (SGD) optimizer with a learning rate of 0.007 and momentum of 0.9, together with Binary Cross-Entropy (BCE) loss. Training was performed with a batch size of 32 for 20 epochs. Model performance was monitored using Area Under the ROC Curve (AUC) and loss on both the training and validation sets across all epochs.
 
@@ -62,11 +62,11 @@ The final CNN model was evaluated using Receiver Operating Characteristic (ROC) 
 
 ## Results
 
-![***Figure 3:** ROC curve of the CNN model on the test set*](images/roc.jpg "ROC curve of the CNN model on the test set"){width="552"}
+![***Figure 3:** ROC curve of the CNN model on the test set*](images/roc.jpg "ROC curve of the CNN model on the test set")
 
 \-
 
-![***Figure 4:** Decision curve of the CNN model on the test set*](images/decision_curve.jpg "Decision curve of the CNN model on the test set"){width="556"}
+![***Figure 4:** Decision curve of the CNN model on the test set*](images/decision_curve.jpg "Decision curve of the CNN model on the test set")
 
 The model's ROC curve on the test set lies close to the top-left corner, indicating strong classification performance. Furthermore, the model's decision curve on the test set shows that the CNN provides a higher net benefit than both the “Treat all” and “Treat none” strategies across most classification thresholds, reflecting high clinical utility. The model obtained an AUC of 0.9957 on the training set and 0.9911 on the test set, indicating no significant overfitting. Test set AUC evaluation results demonstrate that the proposed CNN achieves excellent classification performance.
 
