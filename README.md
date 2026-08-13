@@ -4,7 +4,7 @@
 
 Malaria is a life-threatening infectious disease caused by *Plasmodium* parasites and remains a major global health concern. Among the five known *Plasmodium* species infecting humans, *Plasmodium falciparum* is responsible for the most severe and fatal cases.
 
-This project implements a Convolutional Neural Network (CNN) to automatically detect the presence of *Plasmodium falciparum* parasites in Giemsa-stained red blood cell images as part of my master's thesis. The task is formulated as a binary image classification problem, distinguishing between parasitized and uninfected red blood cells. This work aims to develop a deep learning–based approach that can assist in malaria screening by improving diagnostic efficiency and consistency. The code was developed and executed using RStudio.
+This project implements a Convolutional Neural Network (CNN) to automatically detect the presence of *Plasmodium falciparum* parasites in Giemsa-stained red blood cell images. The task is formulated as a binary image classification problem, distinguishing between parasitized and uninfected red blood cells. This work aims to develop a deep learning-based approach that can assist in malaria screening by improving diagnostic efficiency and consistency. The code was developed and executed using RStudio.
 
 ## Data
 
@@ -14,19 +14,19 @@ This project uses the Malaria Cell Images dataset, which contains 28,115 images 
 
 ***Figure 1:** Images of parasitized and uninfected red blood cells*
 
-The dataset consists of RGB images with heights ranging from 40 to 385 pixels and widths ranging from 46 to 394 pixels. All images were resized to 50 × 50 pixels using bilinear interpolation. The dataset was split into training, validation, and test sets following a 70:10:20 ratio. Because pixel values in the training set already lie within the range [0, 1], no additional image normalization was required.
+The dataset consists of RGB images with heights ranging from 40 to 385 pixels and widths ranging from 46 to 394 pixels. All images were resized to 50 $\times$ 50 pixels using bilinear interpolation. The dataset was split into training, validation, and test sets following a 70:10:20 ratio. Because pixel values in the training set already lie within the range [0,1], no additional image normalization was required.
 
 ## Methods
 
 A CNN was built from scratch using Tensorflow to classify malaria-infected and uninfected red blood cell images. The model construction followed these steps:
 
--   A sequential model was initialized, with the input defined as an RGB image of size 50 $\times$ 50 pixels.
+- A sequential model was initialized, with the input defined as an RGB image of size 50 $\times$ 50 pixels.
 
--   Feature extraction is performed using 6 convolutional layers organized into 3 convolutional blocks, with increasing numbers of filters (16, 32, 64, 128, 256, and 512). All convolutional layers use 3 $\times$ 3 kernels, followed by batch normalization and ReLU activation. Max pooling layers with a 2 $\times$ 2 pool size and dropout layers with a dropout rate of 0.2 are added at the end of every convolutional block.
+- Feature extraction is performed using 6 convolutional layers organized into 3 convolutional blocks, with increasing numbers of filters (16, 32, 64, 128, 256, and 512). All convolutional layers use 3 $\times$ 3 kernels, followed by batch normalization and ReLU activation. Max pooling layers with a 2 $\times$ 2 pool size and dropout layers with a dropout rate of 0.2 are added at the end of every convolutional block.
 
--   The extracted feature maps are flattened using a flatten layer and passed to 2 fully connected (FC) layers with 128 and 100 units, respectively. Each FC layer is followed by batch normalization, ReLU activation, and a dropout layer with a dropout rate of 0.4.
+- The extracted feature maps are flattened using a flatten layer and passed to 2 fully connected (FC) layers with 128 and 100 units, respectively. Each FC layer is followed by batch normalization, ReLU activation, and a dropout layer with a dropout rate of 0.4.
 
--   Finally, the output layer is defined as a FC layer with 1 unit and sigmoid activation, producing a probability score that indicates the likelihood that an input image belongs to the Parasitized class.
+- Finally, the output layer is defined as a FC layer with 1 unit and sigmoid activation, producing a probability score that indicates the likelihood that an input image belongs to the Parasitized class.
 
 ![](images/cnn_diagram.jpg "Architecture of the CNN model")
 
@@ -34,7 +34,7 @@ A CNN was built from scratch using Tensorflow to classify malaria-infected and u
 
 The resulting model was trained using the Stochastic Gradient Descent (SGD) optimizer with a learning rate of 0.007 and momentum of 0.9, together with Binary Cross-Entropy (BCE) loss. Training was performed with a batch size of 32 for 20 epochs. Model performance was monitored using Area Under the ROC Curve (AUC) and loss on both the training and validation sets across all epochs.
 
-The final CNN model was evaluated using Receiver Operating Characteristic (ROC) curve, Decision curve and Area Under the ROC Curve (AUC). Afterwards, the three ROC - based criteria and the net benefit function were used to find the optimal classification threshold for the model.
+The final CNN model was evaluated using Receiver Operating Characteristic (ROC) curve, Decision curve and Area Under the ROC Curve (AUC). Afterwards, the three ROC-based criteria and the net benefit function were used to find the optimal classification threshold for the model.
 
 #### ROC curve and AUC
 
@@ -44,7 +44,7 @@ The final CNN model was evaluated using Receiver Operating Characteristic (ROC) 
 
 #### Decision curve
 
-> ***Decision curve** is a plot of the net benefit as a function of the classification threshold and is used to evaluate the clinical utility of a binary classification model. In Decision Curve Analysis (DCA), two default treatment strategies—“Treat none” and “Treat all”—are used as reference baselines for comparison with predictive models.*
+> ***Decision curve** is a plot of the net benefit as a function of the classification threshold and is used to evaluate the clinical utility of a binary classification model. In Decision Curve Analysis (DCA), two default treatment strategies - “Treat none” and “Treat all” - are used as reference baselines for comparison with predictive models.*
 
 #### Classification threshold
 
